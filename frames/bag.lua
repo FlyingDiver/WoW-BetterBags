@@ -68,6 +68,7 @@ local Window = LibStub('LibWindow-1.1')
 ---@field freeBagSlotsButton Item The free bag slots button.
 ---@field freeReagentBagSlotsButton Item The free reagent bag slots button.
 ---@field itemsByBagAndSlot table<number, table<number, Item|ItemRow>>
+---@field currentItemCount number
 ---@field sections table<string, Section>
 ---@field slots bagSlots
 ---@field isReagentBank boolean
@@ -75,6 +76,7 @@ local Window = LibStub('LibWindow-1.1')
 ---@field bg Texture
 ---@field moneyFrame Money
 ---@field resizeHandle Button
+---@field drawOnClose boolean
 local bagProto = {}
 
 function bagProto:Show()
@@ -91,6 +93,11 @@ function bagProto:Hide()
   end
   PlaySound(self.kind == const.BAG_KIND.BANK and SOUNDKIT.IG_MAINMENU_CLOSE or SOUNDKIT.IG_BACKPACK_CLOSE)
   self.frame:Hide()
+  if self.drawOnClose and self.kind == const.BAG_KIND.BACKPACK then
+    debug:Log("draw", "Drawing bag on close")
+    self.drawOnClose = false
+    self:Refresh()
+  end
 end
 
 function bagProto:Toggle()
@@ -268,7 +275,8 @@ function bagFrame:Create(kind)
   ---@class Bag
   local b = {}
   setmetatable(b, { __index = bagProto })
-
+  b.currentItemCount = 0
+  b.drawOnClose = false
   b.isReagentBank = false
   b.itemsByBagAndSlot = {}
   b.sections = {}
@@ -346,8 +354,9 @@ function bagFrame:Create(kind)
   end
   bagButton:SetScript("OnEnter", function()
     if not database:GetFirstTimeMenu() then
+      anig:Stop()
       highlightTex:SetAlpha(1)
-      anig:Restart()
+      anig:Play()
     end
     GameTooltip:SetOwner(bagButton, "ANCHOR_LEFT")
     if kind == const.BAG_KIND.BACKPACK then
@@ -360,6 +369,7 @@ function bagFrame:Create(kind)
   bagButton:SetScript("OnLeave", function()
     GameTooltip:Hide()
     if not database:GetFirstTimeMenu() then
+      anig:Stop()
       highlightTex:SetAlpha(0)
       anig:Restart(true)
     end

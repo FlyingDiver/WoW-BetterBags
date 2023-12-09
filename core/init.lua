@@ -19,6 +19,9 @@ local const = addon:GetModule('Constants')
 ---@class Items: AceModule
 local items = addon:GetModule('Items')
 
+---@class ItemFrame: AceModule
+local itemFrame = addon:GetModule('ItemFrame')
+
 ---@class Events: AceModule
 local events = addon:GetModule('Events')
 
@@ -85,6 +88,9 @@ end
 
 -- OnEnable is called when the addon is enabled.
 function addon:OnEnable()
+  local updateFrame = CreateFrame("Frame")
+  updateFrame:SetScript("OnUpdate", self.OnUpdate)
+  itemFrame:Enable()
   sectionFrame:Enable()
   masque:Enable()
   context:Enable()
@@ -94,15 +100,14 @@ function addon:OnEnable()
   addon.Bags.Backpack = BagFrame:Create(const.BAG_KIND.BACKPACK)
   addon.Bags.Bank = BagFrame:Create(const.BAG_KIND.BANK)
 
-  --[[
-  self:SecureHook('OpenAllBags')
   self:SecureHook('OpenBackpack')
-  self:SecureHook('ToggleBackpack')
+  self:SecureHook('OpenAllBags')
   self:SecureHook('CloseBackpack')
   self:SecureHook('CloseAllBags')
-  --]]
-  self:SecureHook('CloseSpecialWindows')
+  self:SecureHook('ToggleBackpack')
   self:SecureHook('ToggleAllBags')
+  self:SecureHook('ToggleBag')
+  self:SecureHook('CloseSpecialWindows')
 
   events:RegisterEvent('BANKFRAME_CLOSED', self.CloseBank)
 

@@ -25,6 +25,7 @@ function views:GridView(bag, dirtyItems)
   bag:WipeFreeSlots()
   local freeSlotsData = {count = 0, bagid = 0, slotid = 0}
   local freeReagentSlotsData = {count = 0, bagid = 0, slotid = 0}
+  local itemCount = 0
   bag.content.compactStyle = database:GetBagCompaction(bag.kind)
   for _, data in pairs(dirtyItems) do
     local bagid, slotid = data.bagid, data.slotid
@@ -41,6 +42,8 @@ function views:GridView(bag, dirtyItems)
         freeSlotsData.bagid = bagid
         freeSlotsData.slotid = slotid
       end
+    else
+      itemCount = itemCount + 1
     end
 
     local oldFrame = bag.itemsByBagAndSlot[bagid][slotid] --[[@as Item]]
@@ -74,7 +77,11 @@ function views:GridView(bag, dirtyItems)
       local newSection = bag:GetOrCreateSection(newCategory)
 
       if oldCategory ~= newCategory then
-        oldSection:RemoveCell(oldGuid, oldFrame)
+        if bag.recentItems:HasItem(oldFrame) then
+          bag.recentItems:RemoveCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
+        else
+          oldSection:RemoveCell(oldGuid, oldFrame)
+        end
         newSection:AddCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
       end
       if oldSection == bag.recentItems then
@@ -92,7 +99,11 @@ function views:GridView(bag, dirtyItems)
       local newCategory = oldFrame:GetCategory()
       local newSection = bag:GetOrCreateSection(newCategory)
       if oldCategory ~= newCategory then
-        oldSection:RemoveCell(oldGuid, oldFrame)
+        if bag.recentItems:HasItem(oldFrame) then
+          bag.recentItems:RemoveCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
+        else
+          oldSection:RemoveCell(oldGuid, oldFrame)
+        end
         newSection:AddCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
       end
       if oldSection:GetCellCount() == 0 then
@@ -137,10 +148,15 @@ function views:GridView(bag, dirtyItems)
 
   bag.recentItems:SetMaxCellWidth(sizeInfo.itemsPerRow)
   -- Loop through each section and draw it's size.
-  for _, section in pairs(bag.sections) do
-    section:SetMaxCellWidth(sizeInfo.itemsPerRow)
-    section:Draw(bag.kind, database:GetBagView(bag.kind))
+  if bag.currentItemCount <= itemCount or bag.kind ~= const.BAG_KIND.BACKPACK then
+    for _, section in pairs(bag.sections) do
+      section:SetMaxCellWidth(sizeInfo.itemsPerRow)
+      section:Draw(bag.kind, database:GetBagView(bag.kind))
+    end
+  else
+    bag.drawOnClose = true
   end
+  bag.currentItemCount = itemCount
   bag.freeSlots:SetMaxCellWidth(sizeInfo.itemsPerRow)
   bag.freeSlots:Draw(bag.kind, database:GetBagView(bag.kind))
 

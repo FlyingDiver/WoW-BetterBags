@@ -71,7 +71,6 @@ function views:ListView(bag, dirtyItems)
         bag.content:GetContainer():OnMouseWheel(delta)
       end)
       newFrame:SetItem(data)
-      newFrame.button:SetSize(32, 32)
       local category = newFrame:GetCategory()
       local section ---@type Section|nil
       if newFrame:IsNewItem() then
@@ -90,7 +89,7 @@ function views:ListView(bag, dirtyItems)
       -- The old frame exists, so we need to update it.
       local oldCategory = oldFrame.data.itemInfo.category
       local oldSection = bag.sections[oldCategory]
-      if bag.recentItems:HasItem(oldFrame.button) then
+      if bag.recentItems:HasItem(oldFrame) then
         oldSection = bag.recentItems
         oldCategory = bag.recentItems.title:GetText()
       end
@@ -100,7 +99,11 @@ function views:ListView(bag, dirtyItems)
       local newSection = bag:GetOrCreateSection(newCategory)
 
       if oldCategory ~= newCategory then
-        oldSection:RemoveCell(oldGuid, oldFrame)
+        if bag.recentItems:HasItem(oldFrame) then
+          bag.recentItems:RemoveCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
+        else
+          oldSection:RemoveCell(oldGuid, oldFrame)
+        end
         newSection:AddCell(oldFrame:GetGUID(), oldFrame)
       end
       if oldSection == bag.recentItems then
@@ -118,7 +121,11 @@ function views:ListView(bag, dirtyItems)
       local newCategory = oldFrame:GetCategory()
       local newSection = bag:GetOrCreateSection(newCategory)
       if oldCategory ~= newCategory then
-        oldSection:RemoveCell(oldGuid, oldFrame)
+        if bag.recentItems:HasItem(oldFrame) then
+          bag.recentItems:RemoveCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
+        else
+          oldSection:RemoveCell(oldGuid, oldFrame)
+        end
         newSection:AddCell(oldFrame.data.itemInfo.itemGUID, oldFrame)
       end
       if oldSection:GetCellCount() == 0 then
@@ -129,7 +136,7 @@ function views:ListView(bag, dirtyItems)
 
       -- The item in this same slot may no longer be a new item, i.e. it was moused over. If so, we
       -- need to resection it.
-      if not oldFrame:IsNewItem() and bag.recentItems:HasItem(oldFrame.button) then
+      if not oldFrame:IsNewItem() and bag.recentItems:HasItem(oldFrame) then
         bag.recentItems:RemoveCell(oldFrame:GetGUID(), oldFrame)
         local category = oldFrame:GetCategory()
         local section = bag:GetOrCreateSection(category)
@@ -139,7 +146,7 @@ function views:ListView(bag, dirtyItems)
       -- The old frame exists, but the item is empty, so we need to delete it.
       bag.itemsByBagAndSlot[bagid][slotid] = nil
       -- Special handling for the recent items section.
-      if bag.recentItems:HasItem(oldFrame.button) then
+      if bag.recentItems:HasItem(oldFrame) then
         bag.recentItems:RemoveCell(oldFrame:GetGUID(), oldFrame)
       else
         local section = bag.sections[oldFrame:GetCategory()]
