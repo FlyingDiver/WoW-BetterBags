@@ -77,6 +77,9 @@ local Window = LibStub('LibWindow-1.1')
 ---@field moneyFrame Money
 ---@field resizeHandle Button
 ---@field drawOnClose boolean
+---@field menuList MenuList[]
+---@field toRelease Item[]
+---@field toReleaseSections Section[]
 local bagProto = {}
 
 function bagProto:Show()
@@ -129,11 +132,19 @@ end
 
 -- Wipe will wipe the contents of the bag and release all cells.
 function bagProto:Wipe()
+  for _, oldFrame in pairs(self.toRelease) do
+    oldFrame:Release()
+  end
+  for _, section in pairs(self.toReleaseSections) do
+    section:Release()
+  end
   self:WipeFreeSlots()
   self.content:RemoveCell(self.freeSlots.title:GetText(), self.freeSlots)
   self.content:Wipe()
   wipe(self.itemsByBagAndSlot)
   wipe(self.sections)
+  wipe(self.toRelease)
+  wipe(self.toReleaseSections)
 end
 
 -- Refresh will refresh this bag's item database, and then redraw the bag.
@@ -175,14 +186,6 @@ end
 ---@param dirtyItems ItemData[]
 function bagProto:Draw(dirtyItems)
   self:UpdateCellWidth()
-  for _, i in pairs(self.recentItems:GetAllCells()) do
-    local bagid, slotid = i.data.bagid, i.data.slotid
-    if bagid and slotid then
-      self.itemsByBagAndSlot[bagid] = self.itemsByBagAndSlot[bagid] or {}
-      self.itemsByBagAndSlot[bagid][slotid] = nil
-    end
-  end
-  self.recentItems:WipeOnlyContents()
   if database:GetBagView(self.kind) == const.BAG_VIEW.ONE_BAG then
     self.resizeHandle:Hide()
     views:OneBagView(self, dirtyItems)
@@ -215,11 +218,23 @@ function bagProto:OnResize()
   self:KeepBagInBounds()
 end
 
+function bagProto:ClearRecentItems()
+  for _, i in pairs(self.recentItems:GetAllCells()) do
+    local bagid, slotid = i.data.bagid, i.data.slotid
+    if bagid and slotid then
+      self.itemsByBagAndSlot[bagid] = self.itemsByBagAndSlot[bagid] or {}
+      self.itemsByBagAndSlot[bagid][slotid] = nil
+    end
+  end
+  self.recentItems:WipeOnlyContents()
+end
+
 -- GetOrCreateSection will get an existing section by category,
 -- creating it if it doesn't exist.
 ---@param category string
 ---@return Section
 function bagProto:GetOrCreateSection(category)
+  if category == L:G("Recent Items") then return self.recentItems end
   local section = self.sections[category]
   if section == nil then
     section = sectionFrame:Create()
@@ -238,11 +253,15 @@ function bagProto:ToggleReagentBank()
   if self.isReagentBank then
     BankFrame.selectedTab = 2
     self.frame:SetTitle(L:G("Reagent Bank"))
+    self.currentItemCount = -1
+    self:ClearRecentItems()
     self:Wipe()
     items:RefreshReagentBank()
   else
     BankFrame.selectedTab = 1
     self.frame:SetTitle(L:G("Bank"))
+    self.currentItemCount = -1
+    self:ClearRecentItems()
     self:Wipe()
     items:RefreshBank()
   end
@@ -264,6 +283,10 @@ function bagProto:OnCooldown()
   end
 end
 
+function bagProto:UpdateContextMenu()
+  self.menuList = context:CreateContextMenu(self)
+end
+
 -------
 --- Bag Frame
 -------
@@ -280,6 +303,8 @@ function bagFrame:Create(kind)
   b.isReagentBank = false
   b.itemsByBagAndSlot = {}
   b.sections = {}
+  b.toRelease = {}
+  b.toReleaseSections = {}
   b.kind = kind
   local sizeInfo = database:GetBagSizeInfo(b.kind, database:GetBagView(b.kind))
   local name = kind == const.BAG_KIND.BACKPACK and "Backpack" or "Bank"
@@ -327,7 +352,7 @@ function bagFrame:Create(kind)
   end
 
   -- Setup the context menu.
-  local contextMenu = context:CreateContextMenu(b)
+  b.menuList = context:CreateContextMenu(b)
 
   -- Create the invisible menu button.
   local bagButton = CreateFrame("Button")
@@ -383,7 +408,7 @@ function bagFrame:Create(kind)
         anig:SetLooping("NONE")
         anig:Restart()
       end
-      context:Show(contextMenu)
+      context:Show(b.menuList)
     else
       b:ToggleReagentBank()
     end

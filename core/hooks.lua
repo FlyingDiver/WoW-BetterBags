@@ -36,7 +36,9 @@ function addon:OpenAllBags()
   addon.backpackShouldOpen = true
 end
 
-function addon:CloseAllBags()
+---@param interactingFrame Frame
+function addon:CloseAllBags(interactingFrame)
+  if interactingFrame ~= nil then return end
   addon.backpackShouldClose = true
 end
 
@@ -77,7 +79,7 @@ function addon:ToggleBackpack()
 end
 
 function addon:CloseSpecialWindows()
-  addon.Bags.Backpack:Hide()
+  addon.backpackShouldClose = true
   addon.Bags.Bank:Hide()
   addon.Bags.Bank:SwitchToBank()
   CloseBankFrame()
@@ -88,8 +90,9 @@ function addon:OpenBank()
   addon.Bags.Backpack:Show()
 end
 
-function addon:CloseBank()
+---@param interactingFrame Frame
+function addon:CloseBank(interactingFrame)
+  if interactingFrame ~= nil then return end
   addon.Bags.Bank:Hide()
-  addon.Bags.Backpack:Hide()
   addon.Bags.Bank:SwitchToBank()
 end

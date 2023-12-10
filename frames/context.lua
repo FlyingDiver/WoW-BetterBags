@@ -16,6 +16,9 @@ local database = addon:GetModule('Database')
 ---@class SliderFrame: AceModule
 local slider = addon:GetModule('Slider')
 
+---@class Categories: AceModule
+local categories = addon:GetModule('Categories')
+
 ---@class Localization: AceModule
 local L =  addon:GetModule('Localization')
 
@@ -55,6 +58,27 @@ end
 
 function context:Hide()
   LibDD:HideDropDownMenu(1)
+end
+
+local function addDivider(menuList)
+  table.insert(menuList, {
+    text = "",
+    isTitle = true,
+    hasArrow = false,
+    notCheckable = true,
+    iconOnly = true,
+    isUninteractable = true,
+    icon = "Interface\\Common\\UI-TooltipDivider-Transparent",
+    iconInfo = {
+      tCoordLeft = 0,
+			tCoordRight = 1,
+			tCoordTop = 0,
+			tCoordBottom = 1,
+			tSizeX = 0,
+			tSizeY = 8,
+			tFitDropDownSizeX = true
+    },
+  })
 end
 
 ---@param menu MenuList[]
@@ -124,7 +148,27 @@ function context:CreateContextMenu(bag)
       }
     }
   })
-
+  addDivider(menuList[2].menuList)
+  for category, _ in pairs(categories:GetAllCategories()) do
+    table.insert(menuList[2].menuList, {
+      text = category,
+      tooltipTitle = category,
+      tooltipText = L:G("If enabled, will categorize items by ") .. category .. ".",
+      checked = function() return categories:IsCategoryEnabled(category) end,
+      func = function()
+        context:Hide()
+        categories:ToggleCategory(category)
+        bag:Wipe()
+        bag:Refresh()
+      end
+    })
+  end
+  --TODO(lobato): Iterate custom categories, add them here.
+  table.insert(menuList[2].menuList, {
+    text = L:G("Edit Custom Categories..."),
+    notCheckable = true,
+    hasArrow = false,
+  })
   table.insert(menuList, {
     text = L:G("Compaction"),
     notCheckable = true,
@@ -295,6 +339,7 @@ function context:CreateContextMenu(bag)
         func = function()
           context:Hide()
           database:SetBagView(bag.kind, const.BAG_VIEW.ONE_BAG)
+          bag:ClearRecentItems()
           bag:Wipe()
           bag:Refresh()
         end
@@ -308,6 +353,9 @@ function context:CreateContextMenu(bag)
         func = function()
           context:Hide()
           database:SetBagView(bag.kind, const.BAG_VIEW.SECTION_GRID)
+          bag.drawOnClose = true
+          bag.currentItemCount = -1
+          bag:ClearRecentItems()
           bag:Wipe()
           bag:Refresh()
         end
@@ -321,6 +369,7 @@ function context:CreateContextMenu(bag)
         func = function()
           context:Hide()
           database:SetBagView(bag.kind, const.BAG_VIEW.LIST)
+          bag:ClearRecentItems()
           bag:Wipe()
           bag:Refresh()
         end

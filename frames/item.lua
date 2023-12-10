@@ -196,6 +196,10 @@ function itemProto:SetFreeSlots(bagid, slotid, count, reagent)
 end
 
 function itemProto:GetCategory()
+  if self:IsNewItem() then
+    self.data.itemInfo.category = L:G("Recent Items")
+    return self.data.itemInfo.category
+  end
   -- Return the custom category if it exists.
   local customCategory = categories:GetCustomCategory(self.data)
   if customCategory then
@@ -259,6 +263,11 @@ function itemProto:IsNewItem()
   return self.data.itemInfo.isNewItem
 end
 
+---@param alpha number
+function itemProto:SetAlpha(alpha)
+  self.frame:SetAlpha(alpha)
+end
+
 function itemProto:Release()
   itemFrame._pool:Release(self)
 end
@@ -269,6 +278,7 @@ function itemProto:ClearItem()
   self.kind = nil
   self.frame:ClearAllPoints()
   self.frame:SetParent(nil)
+  self.frame:SetAlpha(1)
   self.frame:Hide()
   self.button:SetHasItem(false)
   self.button:SetItemButtonTexture(0)
